@@ -1,33 +1,138 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset='UTF-8'/>
-  <meta name='viewport' content='width=device-width, initial-scale=1.0'/>
-  <meta http-equiv='X-UA-Compatible' content='ie=edge'/>
-  <title>Document</title>
-  <script src='js/index.js'></script>
-  <link rel='stylesheet' href='index.css'/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub User and Repo Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    #search-form {
+      margin-bottom: 20px;
+    }
+
+    #results {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .user-card {
+      width: 200px;
+      margin: 10px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .repo-card {
+      width: 300px;
+      margin: 10px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-  <div id='main'>
 
-    <h2>GitHub Search</h2>
-
-    <form id='github-form'>
-      <input id='search' type='text' name='search'>
-      <input type='submit' name='submit'/>
+  <div id="search-form">
+    <form id="github-search-form">
+      <label for="search-type">Search Type:</label>
+      <select id="search-type">
+        <option value="users">Users</option>
+        <option value="repos">Repos</option>
+      </select>
+      <input type="text" id="search-input" placeholder="Enter username or repo name" required>
+      <button type="submit">Search</button>
     </form>
-
-    <div id='github-container'>
-      <ul id='user-list'>
-
-      </ul>
-
-      <ul id='repos-list'>
-
-      </ul>
-    </div>
-
   </div>
+
+  <div id="results"></div>
+
+  <script>
+    const githubApiUrl = 'https://api.github.com';
+
+    document.getElementById('github-search-form').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const searchType = document.getElementById('search-type').value;
+      const searchTerm = document.getElementById('search-input').value;
+
+      if (searchType === 'users') {
+        searchUsers(searchTerm);
+      } else if (searchType === 'repos') {
+        searchRepos(searchTerm);
+      }
+    });
+
+    async function searchUsers(username) {
+      const response = await fetch(`${githubApiUrl}/search/users?q=${username}`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      const data = await response.json();
+      displayUsers(data.items);
+    }
+
+    async function searchRepos(repoName) {
+      const response = await fetch(`${githubApiUrl}/search/repositories?q=${repoName}`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      const data = await response.json();
+      displayRepos(data.items);
+    }
+
+    function displayUsers(users) {
+      const resultsContainer = document.getElementById('results');
+      resultsContainer.innerHTML = '';
+
+      users.forEach(user => {
+        const userCard = document.createElement('div');
+        userCard.classList.add('user-card');
+        userCard.innerHTML = `
+          <img src="${user.avatar_url}" alt="${user.login}" style="width: 100%">
+          <h3>${user.login}</h3>
+          <a href="${user.html_url}" target="_blank">Profile</a>
+        `;
+        userCard.addEventListener('click', () => showUserRepos(user.login));
+        resultsContainer.appendChild(userCard);
+      });
+    }
+
+    async function showUserRepos(username) {
+      const response = await fetch(`${githubApiUrl}/users/${username}/repos`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      const repos = await response.json();
+      displayRepos(repos);
+    }
+
+    function displayRepos(repos) {
+      const resultsContainer = document.getElementById('results');
+      resultsContainer.innerHTML = '';
+
+      repos.forEach(repo => {
+        const repoCard = document.createElement('div');
+        repoCard.classList.add('repo-card');
+        repoCard.innerHTML = `
+          <h3>${repo.name}</h3>
+          <p>${repo.description || 'No description available'}</p>
+          <a href="${repo.html_url}" target="_blank">View on GitHub</a>
+        `;
+        resultsContainer.appendChild(repoCard);
+      });
+    }
+  </script>
 
 </body>
 </html>
